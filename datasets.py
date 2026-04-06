@@ -2,8 +2,9 @@ import pandas as pd
 import torch
 import dgl
 from dgl.data.fraud import FraudAmazonDataset, FraudYelpDataset
+from ieee_cis_dataset import load_ieee_cis
 
-DATA_NAMES = ['yelp', 'amazon', 'amazon_new']
+DATA_NAMES = ['yelp', 'amazon', 'amazon_new', 'ieee_cis']
 
 def load_data(data_name, multi_relation, raw_dir='./data'):
 	
@@ -17,6 +18,9 @@ def load_data(data_name, multi_relation, raw_dir='./data'):
 			features = graph.ndata['feature'].numpy()
 			mask_dup = torch.BoolTensor(pd.DataFrame(features).duplicated(keep=False).values)
 			graph = graph.subgraph(~mask_dup)
+	
+	elif data_name == 'ieee_cis':
+		return load_ieee_cis(raw_dir)  
 	
 	# Rename ndata & Remove redundant data
 	graph.ndata['x'] = graph.ndata['feature']

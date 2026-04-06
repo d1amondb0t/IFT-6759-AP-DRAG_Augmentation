@@ -15,6 +15,8 @@ class DataHandlerModule():
 		np.random.seed(self.args.seed)
 		random.seed(self.args.seed)
 		device = torch.device(self.args.cuda_id)
+		#cuda_id = self.args.cuda_id
+		#device = torch.device(f'cuda:{cuda_id}' if isinstance(cuda_id, int) else cuda_id)
 		torch.cuda.set_device(device)
 				
 		# [STEP-2] Load dataset.
