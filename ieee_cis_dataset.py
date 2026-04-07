@@ -6,7 +6,10 @@ import torch
 
 from collections import defaultdict
 from feature_engineering import run_pipeline
+from sdv.metadata import Metadata
+from sdv.single_table import CTGANSynthesizer
 from sklearn.preprocessing import LabelEncoder, StandardScaler
+
 
 MAX_GROUP         = 30
 MAX_EDGES_PER_REL = 200_000
@@ -37,9 +40,94 @@ def _make_edges(buckets):
         if len(srcs) >= MAX_EDGES_PER_REL:
           return torch.tensor(srcs, dtype=torch.long), torch.tensor(dsts, dtype=torch.long)
   return torch.tensor(srcs, dtype=torch.long), torch.tensor(dsts, dtype=torch.long)
+
+def _apply_gan(df, target_ratio=0.05, max_fraud_for_gan=5000, seed=42, ctgan_epochs=200):
   
-def load_ieee_cis(raw_dir, sample=500000, seed=42):
-  print(f"[IEEE-CIS] Loading from {raw_dir} ...")
+  # ── 1. Isolate Fraud data for training ──────────────
+  fraud_df = df[df["isFraud"] == 1].copy()
+  if len(fraud_df) > max_fraud_for_gan:
+    fraud_df = fraud_df.sample(max_fraud_for_gan, random_state=seed)
+  
+  # ── 2. SDV requires data to be properly typed, hence converting objects -> strings ──────────────
+  numeric_cols = fraud_df.select_dtypes(include=[np.number]).columns
+  fraud_df[numeric_cols] = fraud_df[numeric_cols].fillna(fraud_df[numeric_cols].median())
+  
+  # Fill remaining object/categorical nulls with a placeholder string
+  obj_cols = fraud_df.select_dtypes(include=['object', 'string', 'category']).columns
+  fraud_df[obj_cols] = fraud_df[obj_cols].fillna("unknown")
+  
+  for c in obj_cols:
+      fraud_df[c] = fraud_df[c].astype("string")
+
+  metadata = Metadata.detect_from_dataframe(data=fraud_df)
+  
+  # ── 3. Apply Tabular GAN Augmentation ──────────────
+  synthesizer = CTGANSynthesizer(metadata,
+                                 epochs=ctgan_epochs,
+                                 verbose=False,
+                                 enforce_rounding=False)
+
+  synthesizer.fit(fraud_df)
+  
+  # ── 4. Calculate num rows required to reach fraud ratio ──────────────
+  fraud_count = df["isFraud"].sum()
+  total_count = len(df)
+  n_synth = int(np.ceil(max(0, (target_ratio * total_count - fraud_count) / (1 - target_ratio))))
+  
+  if n_synth > 0:
+    synthetic_fraud = synthesizer.sample(num_rows=n_synth)
+    synthetic_fraud["isFraud"] = 1
+    
+    # Ensure new TransactionIDs don't overlap
+    max_id = df["TransactionID"].max() if "TransactionID" in df.columns else 0
+    synthetic_fraud["TransactionID"] = np.arange(max_id + 1, max_id + 1 + len(synthetic_fraud))
+    
+    df = pd.concat([df, synthetic_fraud], ignore_index=True)
+    
+  return df.reset_index(drop=True)
+
+
+def _apply_graphgan(df, emb_dim=32, graphgan_results_dir="./GraphGAN/results/link_prediction"):
+  df = df.copy()
+  df["gg_node_id"] = np.arange(len(df))
+  
+  gen_emb_path = os.path.join(graphgan_results_dir, "ieee_cis_gan_graphgan_gen_.emb")
+  dis_emb_path = os.path.join(graphgan_results_dir, "ieee_cis_gan_graphgan_dis_.emb")
+  
+  if not os.path.exists(gen_emb_path) or not os.path.exists(dis_emb_path):
+    print("  [Warning] GraphGAN embeddings not found. Skipping GraphGAN augmentation.")
+    return df.drop(columns=["gg_node_id"])
+  
+  def read_emb(path, prefix):
+    emb = pd.read_csv(path, sep="\t", header=None, skiprows=1)
+    emb.rename(columns={0: "gg_node_id"}, inplace=True)
+    emb.columns = ["gg_node_id"] + [f"{prefix}_{i}" for i in range(emb.shape[1] - 1)]
+    return emb
+  
+  emb_gen = read_emb(gen_emb_path, "gg_gen")
+  emb_dis = read_emb(dis_emb_path, "gg_dis")
+  
+  emb_merged = emb_gen.merge(emb_dis, on="gg_node_id", how="inner")
+  
+  avg_embs = {"gg_node_id": emb_merged["gg_node_id"].astype(int)}
+  for i in range(emb_dim):
+    avg_embs[f"gg_emb_{i}"] = (
+      emb_merged[f"gg_gen_{i}"].astype(float) + 
+      emb_merged[f"gg_dis_{i}"].astype(float)
+    ) / 2.0
+  
+  emb_df = pd.DataFrame(avg_embs)
+  
+  df = df.merge(emb_df, on="gg_node_id", how="left")
+  
+  gg_emb_cols = [c for c in df.columns if c.startswith("gg_emb_")]
+  df[gg_emb_cols] = df[gg_emb_cols].fillna(0.0)
+  
+  return df.drop(columns=["gg_node_id"])
+
+  
+def load_ieee_cis(raw_dir, sample=500000, seed=42, apply_gan=False, apply_graph_gan=False ):
+  print(f"[IEEE-CIS] Loading from {raw_dir} ...... (GAN: {apply_gan}, GraphGAN: {apply_graph_gan})")
   
   # ── 1. Feature Engineering ──────────────
   train_df, _ = run_pipeline(
@@ -63,22 +151,38 @@ def load_ieee_cis(raw_dir, sample=500000, seed=42):
   else:
     df = train_df
     
+  # ── 3. Apply Tabular GAN Augmentation ──────────────
+  if apply_gan:
+    print("  Running CTGAN to augment fraud samples...")
+    df = _apply_gan(df, seed=seed)
+  
+  # ── 4. Apply GraphGAN Feature Embeddings ──────────────
+  if apply_graph_gan:
+    print("  Running GraphGAN to append node embeddings...")
+    df = _apply_graphgan(df, seed=seed)
+    
   n = len(df)
   y = df["isFraud"].values.astype(np.int64)
   
-  # ── 3. relation edge sets (mirrors YelpChi's 3 relations) ──────────────
+  # ── 5. relation edge sets (mirrors YelpChi's 3 relations) ──────────────
   card_s, card_d = _make_edges(_bucketize(df["card1"] if "card1" in df.columns else pd.Series(np.arange(n) % 500)))
   addr_s, addr_d = _make_edges(_bucketize(df["addr1"] if "addr1" in df.columns else pd.Series(np.arange(n) % 300)))
   time_s, time_d = _make_edges(_bucketize(
       df["TransactionDT"] // 3600 % 24 if "TransactionDT" in df.columns
       else pd.Series(np.arange(n) % 24)))
   
-  # ── 4. Final Feature Scaling ──────────────
+  # ── 6. Final Feature Scaling ──────────────
   feat_df = df.drop(columns=["isFraud", "TransactionID", "TransactionDT"], errors="ignore")
+  
+  for c in feat_df.select_dtypes(include=["object", "string", "category"]).columns:
+      feat_df[c] = LabelEncoder().fit_transform(
+          feat_df[c].astype(str).fillna("__nan__")
+      ).astype(np.float32)
+  
   feat_df = feat_df.fillna(0)
   X = StandardScaler().fit_transform(feat_df.values.astype(np.float32))
   
-  # ── 5. Build Heterogenous graph ──────────────
+  # ── 7. Build Heterogenous graph ──────────────
   graph = dgl.heterograph({
     ("transaction", "card_link", "transaction"): (card_s, card_d),
     ("transaction", "addr_link", "transaction"): (addr_s, addr_d),
