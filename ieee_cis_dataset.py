@@ -37,70 +37,8 @@ def _make_edges(buckets):
         if len(srcs) >= MAX_EDGES_PER_REL:
           return torch.tensor(srcs, dtype=torch.long), torch.tensor(dsts, dtype=torch.long)
   return torch.tensor(srcs, dtype=torch.long), torch.tensor(dsts, dtype=torch.long)
-
-def load_ieee_cis(raw_dir, sample=500000, seed=42):
-  print(f"[IEEE-CIS] Loading from {raw_dir} ...")
-
-  tr_t = pd.read_csv(os.path.join(raw_dir, "train_transaction.csv"))
-  tr_i = pd.read_csv(os.path.join(raw_dir, "train_identity.csv"))
-  df   = tr_t.merge(tr_i, on="TransactionID", how="left")
-  print(f"  Merged:    {df.shape}  |  Fraud rate: {df['isFraud'].mean():.4f}")
-
-  # Stratified subsample
-  if 0 < sample < len(df):
-      fraud   = df[df["isFraud"] == 1]
-      legit   = df[df["isFraud"] == 0]
-      n_fraud = max(20, int(sample * len(fraud) / len(df)))
-      n_legit = sample - n_fraud
-      df = pd.concat([
-          fraud.sample(n=min(n_fraud, len(fraud)), random_state=seed),
-          legit.sample(n=min(n_legit, len(legit)), random_state=seed),
-      ]).sample(frac=1, random_state=seed).reset_index(drop=True)
-      print(f"  Sampled:   {len(df)} rows  (fraud={n_fraud}, legit={n_legit})")
-
-  y = df["isFraud"].values.astype(np.int64)
-  n = len(df)
-
-  # ── Node features -- key must be "x" (matches data_handler.py) ────────
-  feat_df = df.drop(columns=["isFraud", "TransactionID"], errors="ignore").copy()
-  feat_df = feat_df.dropna(axis=1, thresh=int(0.4 * n))
-  for c in feat_df.select_dtypes(include="object").columns:
-      feat_df[c] = LabelEncoder().fit_transform(
-          feat_df[c].astype(str).fillna("__nan__")).astype(np.float32)
-  feat_df = feat_df.fillna(feat_df.median(numeric_only=True))
-  if feat_df.shape[1] > 50:
-      feat_df = feat_df[feat_df.var().nlargest(50).index]
-  X = StandardScaler().fit_transform(feat_df.values.astype(np.float32))
-
-  # ── 3 relation edge sets (mirrors YelpChi's 3 relations) ──────────────
-  card_s, card_d = _make_edges(_bucketize(df["card1"] if "card1" in df.columns else pd.Series(np.arange(n) % 500)))
-  addr_s, addr_d = _make_edges(_bucketize(df["addr1"] if "addr1" in df.columns else pd.Series(np.arange(n) % 300)))
-  time_s, time_d = _make_edges(_bucketize(
-      df["TransactionDT"] // 3600 % 24 if "TransactionDT" in df.columns
-      else pd.Series(np.arange(n) % 24)))
-
-  # ── Build heterogeneous graph (same structure as FraudYelpDataset) ─────
-  graph = dgl.heterograph({
-      ("transaction", "card_link", "transaction"): (card_s, card_d),
-      ("transaction", "addr_link", "transaction"): (addr_s, addr_d),
-      ("transaction", "time_link", "transaction"): (time_s, time_d),
-  }, num_nodes_dict={"transaction": n})
-
-  # Keys "x" and "y" — exactly what data_handler.py expects
-  graph.ndata["x"] = torch.tensor(X, dtype=torch.float32)
-  graph.ndata["y"] = torch.tensor(y, dtype=torch.long)
-
-  # Self-loops on every relation (data_handler.py does this for yelp/amazon)
-  for etype in graph.etypes:
-      graph = dgl.add_self_loop(graph, etype=etype)
-
-  print(f"  print:     {n:,}")
-  print(f"  Etypes:    {graph.etypes}")
-  print(f"  Features:  {X.shape[1]}")
-  print(f"  Labels:    {np.bincount(y)}")
-  return graph
   
-def load_ieee_cis_modified(raw_dir, sample=250000, seed=42):
+def load_ieee_cis(raw_dir, sample=500000, seed=42):
   print(f"[IEEE-CIS] Loading from {raw_dir} ...")
   
   # ── 1. Feature Engineering ──────────────

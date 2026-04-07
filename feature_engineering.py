@@ -103,6 +103,7 @@ def _label_encode(train: pd.DataFrame, test: pd.DataFrame) -> Tuple[pd.DataFrame
       le.fit(list(train[col].astype(str).values) + list(test[col].astype(str).values))
       train[col] = le.transform(list(train[col].astype(str).values))
       test[col] = le.transform(list(test[col].astype(str).values))
+  return train, test
       
 def _sort_by_time(train: pd.DataFrame) -> pd.DataFrame:
     return train.sort_values('TransactionDT').reset_index(drop=True)
