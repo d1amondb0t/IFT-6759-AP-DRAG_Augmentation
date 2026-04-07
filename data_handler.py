@@ -26,7 +26,7 @@ class DataHandlerModule():
 		- feat_data: The node feature matrix (np.ndarray format).
 		- labels: The labels (np.ndarray format).
 		"""
-		graph = load_data(self.args.data_name,self.args.multi_relation, gan=self.args.apply_gan)
+		graph = load_data(self.args.data_name,self.args.multi_relation, gan=self.args.apply_gan, graph_gan=self.args.apply_graph_gan)
 		labels = graph.ndata["y"]
 		
 		# [STEP-3] Split the train/valid/test dataset with stratified sampling.

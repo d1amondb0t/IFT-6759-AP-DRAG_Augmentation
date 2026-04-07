@@ -109,8 +109,12 @@ def _apply_graphgan(df, emb_dim=32, graphgan_results_dir="./GraphGAN/results/lin
   
   emb_merged = emb_gen.merge(emb_dis, on="gg_node_id", how="inner")
   
+  actual_gen_cols = [c for c in emb_merged.columns if c.startswith("gg_gen_")]
+  actual_dim = len(actual_gen_cols)
+  print(f"    Detected {actual_dim} GraphGAN embedding dimensions.")
+  
   avg_embs = {"gg_node_id": emb_merged["gg_node_id"].astype(int)}
-  for i in range(emb_dim):
+  for i in range(actual_dim):
     avg_embs[f"gg_emb_{i}"] = (
       emb_merged[f"gg_gen_{i}"].astype(float) + 
       emb_merged[f"gg_dis_{i}"].astype(float)
@@ -159,7 +163,7 @@ def load_ieee_cis(raw_dir, sample=500000, seed=42, apply_gan=False, apply_graph_
   # ── 4. Apply GraphGAN Feature Embeddings ──────────────
   if apply_graph_gan:
     print("  Running GraphGAN to append node embeddings...")
-    df = _apply_graphgan(df, seed=seed)
+    df = _apply_graphgan(df)
     
   n = len(df)
   y = df["isFraud"].values.astype(np.int64)
