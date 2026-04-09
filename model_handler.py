@@ -63,6 +63,50 @@ class ModelHandlerModule():
 		
 		return model
 	
+	# PRETRAIN (EMBEDDINGS) FOR GRAPH_SMOTE
+	def pretrain_embeddings(self, epochs=5):
+		print("Pretraining DRAG encoder...")
+
+		model = self.model
+		optimizer = torch.optim.Adam(model.parameters(), lr=self.args.lr)
+
+		graph = self.dataset['graph']
+		idx_train = self.dataset['idx_train']
+		y_train = self.dataset['y_train']
+
+		sampler = dgl.dataloading.MultiLayerFullNeighborSampler(len(self.args.emb_size))
+		device = torch.device(f'cuda:{self.args.cuda_id}' if isinstance(self.args.cuda_id, int) else self.args.cuda_id)
+
+		for _ in range(epochs):
+			batch_idx = generate_batch_idx(idx_train, y_train, self.args.batch_size, self.args.seed)
+
+			train_loader = dgl.dataloading.DataLoader(
+					graph,
+					batch_idx,
+					sampler,
+					batch_size=self.args.batch_size,
+					shuffle=False,
+					drop_last=False,
+					use_uva=True
+			)
+
+			model.train()
+
+			for batch in train_loader:
+				_, _, blocks = batch
+				blocks = [b.to(device) for b in blocks]
+
+				logits = model(blocks)
+				labels = blocks[-1].dstdata['y'].long().to(device)
+
+				loss = torch.nn.functional.cross_entropy(logits, labels)
+
+				loss.backward()
+				optimizer.step()
+				optimizer.zero_grad()
+
+		print("Pretraining complete.")
+        
 	def train(self) -> Tuple[np.array, np.array, float]:
 		"""
 		Train DRAG model on the fraud detection dataset.

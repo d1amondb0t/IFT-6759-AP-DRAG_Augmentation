@@ -134,9 +134,6 @@ def _apply_smote(df, target_ratio=0.05):
   smote = IEEEFraudSMOTE(target_ratio=target_ratio)
   df = smote.augment(df).reset_index(drop=True)
   return df
-
-def _apply_graph_smote(df):
-  pass
   
 def load_ieee_cis(raw_dir, 
                   sample=500000, 
@@ -147,7 +144,7 @@ def load_ieee_cis(raw_dir,
                   apply_graph_smote=False
                   ):
   
-  print(f"[IEEE-CIS] Loading from {raw_dir} ...... (GAN: {apply_gan}, GraphGAN: {apply_graph_gan}), SMOTE: {apply_smote}, GraphSMOTE: {apply_graph_smote}")
+  print(f"[IEEE-CIS] Loading from {raw_dir} ...... (GAN: {apply_gan}, GraphGAN: {apply_graph_gan}, SMOTE: {apply_smote}, GraphSMOTE: {apply_graph_smote})")
   
   # ── 1. Feature Engineering ──────────────
   train_df, _ = run_pipeline(

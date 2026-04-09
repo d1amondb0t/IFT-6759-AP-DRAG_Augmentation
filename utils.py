@@ -197,3 +197,34 @@ def create_dir(dir_path) -> None:
 			os.makedirs(dir_path, exist_ok=True)
 	except OSError:
 		print("Error: Failed to create the directory.")
+
+def extract_embeddings(model_handler, data_handler):
+    """
+    Extract embeddings in CORRECT node order (NO batching)
+    """
+    print("Extracting FULL-GRAPH embeddings...")
+
+    model = model_handler.model
+    model.eval()
+
+    graph = data_handler.dataset['graph']
+
+    cuda_id = model_handler.args.cuda_id
+    device = torch.device(f'cuda:{cuda_id}' if isinstance(cuda_id, int) else cuda_id)
+
+    # Move graph to device (only if CUDA)
+    if device.type == "cuda":
+        graph = graph.to(device)
+
+    # Create full blocks (no sampling)
+    blocks = [graph for _ in range(len(model_handler.args.emb_size))]
+
+    with torch.no_grad():
+        embeddings = model.get_embeddings(blocks)
+
+    embeddings = embeddings.cpu()
+
+    print("Embeddings shape:", embeddings.shape)
+    print("Finished extracting embeddings.")
+
+    return embeddings
