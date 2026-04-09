@@ -9,7 +9,7 @@ from feature_engineering import run_pipeline
 from sdv.metadata import Metadata
 from sdv.single_table import CTGANSynthesizer
 from sklearn.preprocessing import LabelEncoder, StandardScaler
-
+from smote.IEEEFraudSmote import IEEEFraudSMOTE
 
 MAX_GROUP         = 30
 MAX_EDGES_PER_REL = 200_000
@@ -129,9 +129,25 @@ def _apply_graphgan(df, emb_dim=32, graphgan_results_dir="./GraphGAN/results/lin
   
   return df.drop(columns=["gg_node_id"])
 
+
+def _apply_smote(df, target_ratio=0.05):
+  smote = IEEEFraudSMOTE(target_ratio=target_ratio)
+  df = smote.augment(df).reset_index(drop=True)
+  return df
+
+def _apply_graph_smote(df):
+  pass
   
-def load_ieee_cis(raw_dir, sample=500000, seed=42, apply_gan=False, apply_graph_gan=False ):
-  print(f"[IEEE-CIS] Loading from {raw_dir} ...... (GAN: {apply_gan}, GraphGAN: {apply_graph_gan})")
+def load_ieee_cis(raw_dir, 
+                  sample=500000, 
+                  seed=42, 
+                  apply_gan=False,
+                  apply_graph_gan=False,
+                  apply_smote=False,
+                  apply_graph_smote=False
+                  ):
+  
+  print(f"[IEEE-CIS] Loading from {raw_dir} ...... (GAN: {apply_gan}, GraphGAN: {apply_graph_gan}), SMOTE: {apply_smote}, GraphSMOTE: {apply_graph_smote}")
   
   # ── 1. Feature Engineering ──────────────
   train_df, _ = run_pipeline(
@@ -154,13 +170,18 @@ def load_ieee_cis(raw_dir, sample=500000, seed=42, apply_gan=False, apply_graph_
     print(f"  Sampled:   {len(df)} rows  (fraud={n_fraud}, legit={n_legit})")
   else:
     df = train_df
-    
+  
   # ── 3. Apply Tabular GAN Augmentation ──────────────
+  if apply_smote:
+    print ("  Running tabular SMOTE to augment fraud samples...")
+    df = _apply_smote(train_df)
+    
+  # ── 4. Apply Tabular GAN Augmentation ──────────────
   if apply_gan:
     print("  Running CTGAN to augment fraud samples...")
     df = _apply_gan(df, seed=seed)
   
-  # ── 4. Apply GraphGAN Feature Embeddings ──────────────
+  # ── 5. Apply GraphGAN Feature Embeddings ──────────────
   if apply_graph_gan:
     print("  Running GraphGAN to append node embeddings...")
     df = _apply_graphgan(df)
@@ -168,14 +189,14 @@ def load_ieee_cis(raw_dir, sample=500000, seed=42, apply_gan=False, apply_graph_
   n = len(df)
   y = df["isFraud"].values.astype(np.int64)
   
-  # ── 5. relation edge sets (mirrors YelpChi's 3 relations) ──────────────
+  # ── 6. relation edge sets (mirrors YelpChi's 3 relations) ──────────────
   card_s, card_d = _make_edges(_bucketize(df["card1"] if "card1" in df.columns else pd.Series(np.arange(n) % 500)))
   addr_s, addr_d = _make_edges(_bucketize(df["addr1"] if "addr1" in df.columns else pd.Series(np.arange(n) % 300)))
   time_s, time_d = _make_edges(_bucketize(
       df["TransactionDT"] // 3600 % 24 if "TransactionDT" in df.columns
       else pd.Series(np.arange(n) % 24)))
   
-  # ── 6. Final Feature Scaling ──────────────
+  # ── 7. Final Feature Scaling ──────────────
   feat_df = df.drop(columns=["isFraud", "TransactionID", "TransactionDT"], errors="ignore")
   
   for c in feat_df.select_dtypes(include=["object", "string", "category"]).columns:
@@ -186,7 +207,7 @@ def load_ieee_cis(raw_dir, sample=500000, seed=42, apply_gan=False, apply_graph_
   feat_df = feat_df.fillna(0)
   X = StandardScaler().fit_transform(feat_df.values.astype(np.float32))
   
-  # ── 7. Build Heterogenous graph ──────────────
+  # ── 8. Build Heterogenous graph ──────────────
   graph = dgl.heterograph({
     ("transaction", "card_link", "transaction"): (card_s, card_d),
     ("transaction", "addr_link", "transaction"): (addr_s, addr_d),
