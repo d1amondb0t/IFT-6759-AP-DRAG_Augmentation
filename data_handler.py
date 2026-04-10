@@ -31,7 +31,9 @@ class DataHandlerModule():
                     gan=self.args.apply_gan,
                     graph_gan=self.args.apply_graph_gan,
                     smote=self.args.apply_smote,
-                    graph_smote=self.args.apply_graph_smote
+                    graph_smote=self.args.apply_graph_smote,
+                    contrastive_learning=self.args.apply_contrastive_learning,
+                    time_weight_decay=self.args.apply_time_weight_decay
                     )
 		labels = graph.ndata["y"]
 		

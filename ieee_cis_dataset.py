@@ -6,6 +6,8 @@ import torch
 
 from collections import defaultdict
 from feature_engineering import run_pipeline
+#from post_training.temporal_drag import build_delta_t_edge_data
+from post_training.temporal_utils import build_delta_t_edge_data
 from sdv.metadata import Metadata
 from sdv.single_table import CTGANSynthesizer
 from sklearn.preprocessing import LabelEncoder, StandardScaler
@@ -141,10 +143,12 @@ def load_ieee_cis(raw_dir,
                   apply_gan=False,
                   apply_graph_gan=False,
                   apply_smote=False,
-                  apply_graph_smote=False
+                  apply_graph_smote=False,
+                  apply_contrastive_learning=False,
+                  apply_time_weight_decay=False
                   ):
   
-  print(f"[IEEE-CIS] Loading from {raw_dir} ...... (GAN: {apply_gan}, GraphGAN: {apply_graph_gan}, SMOTE: {apply_smote}, GraphSMOTE: {apply_graph_smote})")
+  print(f"[IEEE-CIS] Loading from {raw_dir} ...... (GAN: {apply_gan}, GraphGAN: {apply_graph_gan}, SMOTE: {apply_smote}, GraphSMOTE: {apply_graph_smote}, Contrastive Learning: {apply_contrastive_learning}, Temporal Weight Decay: {apply_time_weight_decay})")
   
   # ── 1. Feature Engineering ──────────────
   train_df, _ = run_pipeline(
@@ -213,6 +217,15 @@ def load_ieee_cis(raw_dir,
   
   graph.ndata["x"] = torch.tensor(X, dtype=torch.float32)
   graph.ndata["y"] = torch.tensor(y, dtype=torch.long)
+  
+  if apply_time_weight_decay:
+    # ── 9. Temporal weighting: store raw TransactionDT on the graph ──────────────
+    dt_values = df["TransactionDT"].fillna(0).values.astype("float32")
+    graph.ndata["transaction_dt"] = torch.tensor(dt_values, dtype=torch.float32)
+
+    # ── Temporal weighting: attach |dt_src - dt_dst| to every edge type ──
+    graph = build_delta_t_edge_data(graph, dt_values)
+    # ────────────────────────────────────────────────────────────────────────────
   
   for etype in graph.etypes:
     graph = dgl.add_self_loop(graph, etype=etype)

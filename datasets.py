@@ -6,8 +6,15 @@ from ieee_cis_dataset import load_ieee_cis
 
 DATA_NAMES = ['yelp', 'amazon', 'amazon_new', 'ieee_cis']
 
-def load_data(data_name, multi_relation, raw_dir='./data',
-              gan=False, graph_gan=False, smote=False, graph_smote=False):
+def load_data(data_name,
+              multi_relation,
+              raw_dir='./data',
+              gan=False,
+              graph_gan=False,
+              smote=False,
+              graph_smote=False,
+              contrastive_learning=False,
+              time_weight_decay=False):
 	
 	assert data_name in DATA_NAMES
 
@@ -24,7 +31,9 @@ def load_data(data_name, multi_relation, raw_dir='./data',
 		return load_ieee_cis(raw_dir, apply_gan=gan,
                        apply_graph_gan=graph_gan,
                        apply_smote=smote,
-                       apply_graph_smote=graph_smote)  
+                       apply_graph_smote=graph_smote,
+                       apply_contrastive_learning=contrastive_learning,
+                       apply_time_weight_decay=time_weight_decay)  
   
 	# Rename ndata & Remove redundant data
 	graph.ndata['x'] = graph.ndata['feature']
