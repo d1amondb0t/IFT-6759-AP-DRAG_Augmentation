@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_none__post_contrastive_learning",
+    "preprocessing": null,
+    "postprocessing": "contrastive_learning",
+    "run": 4,
+    "auc": 0.6834224467608543,
+    "recall": 0.6632856194899991,
+    "f1": 0.4248037401833486,
+    "auc_base": 0.8501806421038538,
+    "recall_base": 0.64859228362878,
+    "f1_base": 0.5939540229370209
+}

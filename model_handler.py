@@ -208,4 +208,4 @@ class ModelHandlerModule():
 		print("\n", "*"*20, f" Test the DRAG ", "*"*20)
 		auc_test, recall_test, f1_mac_test, precision_test = test(model, self.dataset['test_loader'], self.result, epoch, epoch_best, flag="test")
 		
-		return auc_test, f1_mac_test
+		return auc_test, recall_test, f1_mac_test

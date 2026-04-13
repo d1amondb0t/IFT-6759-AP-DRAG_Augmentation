@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_none__post_time_weight_decay",
+    "preprocessing": null,
+    "postprocessing": "time_weight_decay",
+    "run": 5,
+    "auc": 0.8248974811228783,
+    "recall": 0.6144075829383886,
+    "f1": 0.5972612383981349,
+    "auc_base": 0.8248974811228783,
+    "recall_base": 0.6144075829383886,
+    "f1_base": 0.5972612383981349
+}

@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_smote__post_time_weight_decay",
+    "preprocessing": "smote",
+    "postprocessing": "time_weight_decay",
+    "run": 2,
+    "auc": 0.8654099300485137,
+    "recall": 0.7194156675590735,
+    "f1": 0.6066870460499941,
+    "auc_base": 0.8654099300485137,
+    "recall_base": 0.7194156675590735,
+    "f1_base": 0.6066870460499941
+}

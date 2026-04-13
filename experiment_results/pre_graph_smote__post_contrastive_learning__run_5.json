@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_graph_smote__post_contrastive_learning",
+    "preprocessing": "graph_smote",
+    "postprocessing": "contrastive_learning",
+    "run": 5,
+    "auc": 0.4706747556012376,
+    "recall": 0.4674881516587678,
+    "f1": 0.3671242097325394,
+    "auc_base": 0.8426133510993974,
+    "recall_base": 0.6533649289099526,
+    "f1_base": 0.5937100862304021
+}

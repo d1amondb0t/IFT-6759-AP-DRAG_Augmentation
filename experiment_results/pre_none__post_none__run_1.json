@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_none__post_none",
+    "preprocessing": null,
+    "postprocessing": null,
+    "run": 1,
+    "auc": 0.8535197730265864,
+    "recall": 0.6062559241706161,
+    "f1": 0.6219356723382929,
+    "auc_base": 0.8535197730265864,
+    "recall_base": 0.6062559241706161,
+    "f1_base": 0.6219356723382929
+}
