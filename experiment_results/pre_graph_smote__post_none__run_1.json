@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_graph_smote__post_none",
+    "preprocessing": "graph_smote",
+    "postprocessing": null,
+    "run": 1,
+    "auc": 0.8564769038181019,
+    "recall": 0.6763033175355451,
+    "f1": 0.5923080118896769,
+    "auc_base": 0.8564769038181019,
+    "recall_base": 0.6763033175355451,
+    "f1_base": 0.5923080118896769
+}

@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_gan__post_time_weight_decay",
+    "preprocessing": "gan",
+    "postprocessing": "time_weight_decay",
+    "run": 4,
+    "auc": 0.8993712980798804,
+    "recall": 0.7186704107620976,
+    "f1": 0.6907114334415208,
+    "auc_base": 0.8993712980798804,
+    "recall_base": 0.7186704107620976,
+    "f1_base": 0.6907114334415208
+}

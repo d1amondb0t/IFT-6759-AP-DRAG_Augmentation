@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_gan__post_contrastive_learning",
+    "preprocessing": "gan",
+    "postprocessing": "contrastive_learning",
+    "run": 1,
+    "auc": 0.7546746237769599,
+    "recall": 0.6894998041008228,
+    "f1": 0.49926036873209584,
+    "auc_base": 0.8903213506223158,
+    "recall_base": 0.7044534412955465,
+    "f1_base": 0.6784942867201833
+}

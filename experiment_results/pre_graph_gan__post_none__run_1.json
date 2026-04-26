@@ -1,0 +1,12 @@
+{
+    "experiment": "pre_graph_gan__post_none",
+    "preprocessing": "graph_gan",
+    "postprocessing": null,
+    "run": 1,
+    "auc": 0.8516522604085814,
+    "recall": 0.6181042654028436,
+    "f1": 0.6116725411294517,
+    "auc_base": 0.8516522604085814,
+    "recall_base": 0.6181042654028436,
+    "f1_base": 0.6116725411294517
+}

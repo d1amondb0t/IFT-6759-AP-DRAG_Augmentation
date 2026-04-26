@@ -142,6 +142,29 @@ class DRAG(nn.Module):
 			return a, x
 		return x
 
+	def get_embeddings(self, blocks):
+		edge_types = blocks[0].etypes
+		x = blocks[0].srcdata['x']
+
+		for i in range(self.num_layers):
+			features = []
+			for j in range(self.num_relations):
+				h = self.layers[i][j](blocks[i][edge_types[j]], x)
+				if self.is_concat:
+						h = h.reshape(-1, self.emb_dim[i])
+				else:
+						h = h.mean(dim=1).squeeze()
+				features.append(self.activation(h))
+
+			x_dst = x[:blocks[i].dstdata['x'].shape[0]]
+			features.append(self.activation(self.feat_layers[i](x_dst)))
+
+			x = torch.stack(features, 1).squeeze(2)
+			x = self.rel_attn(x, x_dst, layer_num=i)
+			x = self.activation(x)
+
+		return x
+
 	# Compute model prediction with batches.
 	def to_prob(self, blocks):
                 scores = torch.softmax(self.forward(blocks), dim=1)
