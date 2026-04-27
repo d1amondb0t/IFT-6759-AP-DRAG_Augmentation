@@ -20,13 +20,22 @@ We used Python 3.8, Pytorch 1.12.1, and DGL 1.0.2 with cudatoolkit 11.3.
 
 ## Usage
 ### DRAG
-We used NVIDIA RTX A6000 and NVIDIA GeForce RTX 3090 for all our experiments. We provide the template configuration file (`template.json`) for the YelpChi and Amazon_new datasets.
+We used NVIDIA RTX A6000 and NVIDIA GeForce RTX 3090 for all our experiments. We provide the template configuration file (`template.json`) for the datasets.
 
-To train DRAG, use the `run.py` file as follows:
+## How to run the models
 
-```python
+There are two ways to run the project.
+
+For a single DRAG experiment using a JSON configuration file, run:
+
+```bash
 python run.py --exp_config_path=./template.json
 ```
+
+This runs one experiment using the settings defined in template.json.
+
+For the updated augmented pipeline, use main.ipynb. This notebook runs the full set of augmented experiments by combining different preprocessing and post-training options, including GAN, GraphGAN, SMOTE, GraphSMOTE, contrastive learning, and time-weight decay.
+
 Results will be printed in the terminal and saved in the directory designated by the configuration file.
 
 Each run corresponds to an experiment ID `f"{dataset_name}-{train_ratio}-{seed}-{time}"`.
@@ -43,6 +52,9 @@ To train DRAG from scratch, run `run.py` with the configuration file. Please ref
 The list of arguments of the configuration file:
 - `--seed`: seed
 - `--data_name`: name of the fraud detection dataset (available datasets are YelpChi(`yelp`) and Amazon_new(`amazon_new`))
+- `--raw_dir`: the directory of the datasets
+- `--sample`: the number of elements to sample from the original dataset for training
+- `--multi_relation`: whether to use the original multi-relation graph structure. If set to False, the graph is converted to a homogeneous graph
 - `--n_head`: a list consisting of the number of heads for each DRAGConv layer $N_{\alpha}$
 - `--n_head_agg`: a list consisting of the number of heads for aggregation from different relations $N_{\gamma}$ and layers $N_{\beta}$
 - `--train_ratio`: train ratio
@@ -56,7 +68,15 @@ The list of arguments of the configuration file:
 - `--valid_epochs`: the duration of validation
 - `--batch_size`: the batch size
 - `--patience`: early stopping patience
+- `cuda_id`: CUDA device ID used for training
 - `--save_dir`: directory path for saving train, validation, test logs, and the best model
+- `apply_gan`: whether to apply tabular GAN-based augmentation for the IEEE-CIS dataset
+- `apply_graph_gan`: whether to apply GraphGAN embedding features
+- `apply_smote`: whether to apply SMOTE-based minority-class oversampling
+- `apply_graph_smote`: whether to apply graph-level SMOTE augmentation during IEEE-CIS data loading
+- `use_embedding_smote`: whether to apply the advanced embedding-based GraphSMOTE step after the train/validation/test split
+- `apply_contrastive_learning`: whether to apply contrastive-learning-based representation processing
+- `apply_time_weight_decay`: whether to apply time-decay weighting information to transaction graph edges
 
 ## Hyperparameters
 We tuned DRAG with the following tuning ranges:
@@ -77,7 +97,10 @@ We tuned DRAG with the following tuning ranges:
 ## Description for each file
 - `datasets.py`: A file for loading the YelpChi and Amazon_new datasets
 - `data_handler.py`: A file for processing the given dataset according to the arguments
+- `feature_engineering.py`: A file for performing feature engineering
+- `ieee_cis_dataset.py`: A file for loading and preprocessing the IEEE-CIS fraud-detection dataset, applying optional CTGAN, SMOTE, GraphGAN, contrastive-learning, and temporal-weight-decay augmentations, and constructing the heterogeneous transaction graph
 - `layers.py`: A file for defining the DRAGConv layer
+- `main.ipynb`: A notebook for running or experimenting with the augmented DRAG pipeline interactively
 - `model_handler.py`: A file for training DRAG
 - `models.py`: A file for defining DRAG architecture
 - `performance_check.ipynb`: A file for checking the fraud detection performance of DRAG
@@ -85,3 +108,7 @@ We tuned DRAG with the following tuning ranges:
 - `result_manager.py`: A file for managing train, validation, and test logs
 - `template.json`: A template file consisting of arguments
 - `utils.py`: A file for defining utility functions
+- `GraphGAN/results/link_prediction/`: A folder for storing GraphGAN link-prediction outputs, including the generated graph input file and the learned generator/discriminator embedding files used by the GraphGAN augmentation pipeline.
+- `experiment_results/`: A folder for storing saved experiment results from different augmentation settings and repeated runs. The result files are organized by pre-training augmentation method, post-training method, and run number, with a `summary.csv` file for aggregated results.
+- `post_training/`: A folder containing optional post-training modules applied after the base DRAG model is trained, including contrastive learning, temporal DRAG utilities, and time-weighted training components.
+- `smote/`: A folder containing the SMOTE-based augmentation implementation for the IEEE-CIS fraud detection dataset.
