@@ -43,6 +43,9 @@ To train DRAG from scratch, run `run.py` with the configuration file. Please ref
 The list of arguments of the configuration file:
 - `--seed`: seed
 - `--data_name`: name of the fraud detection dataset (available datasets are YelpChi(`yelp`) and Amazon_new(`amazon_new`))
+- `--raw_dir`: the directory of the datasets
+- `--sample`: the number of elements to sample from the original dataset for training
+- `--multi_relation`: whether to use the original multi-relation graph structure. If set to False, the graph is converted to a homogeneous graph
 - `--n_head`: a list consisting of the number of heads for each DRAGConv layer $N_{\alpha}$
 - `--n_head_agg`: a list consisting of the number of heads for aggregation from different relations $N_{\gamma}$ and layers $N_{\beta}$
 - `--train_ratio`: train ratio
@@ -56,7 +59,15 @@ The list of arguments of the configuration file:
 - `--valid_epochs`: the duration of validation
 - `--batch_size`: the batch size
 - `--patience`: early stopping patience
+- `cuda_id`: CUDA device ID used for training
 - `--save_dir`: directory path for saving train, validation, test logs, and the best model
+- `apply_gan`: whether to apply tabular GAN-based augmentation for the IEEE-CIS dataset
+- `apply_graph_gan`: whether to apply GraphGAN embedding features
+- `apply_smote`: whether to apply SMOTE-based minority-class oversampling
+- `apply_graph_smote`: whether to apply graph-level SMOTE augmentation during IEEE-CIS data loading
+- `use_embedding_smote`: whether to apply the advanced embedding-based GraphSMOTE step after the train/validation/test split
+- `apply_contrastive_learning`: whether to apply contrastive-learning-based representation processing
+- `apply_time_weight_decay`: whether to apply time-decay weighting information to transaction graph edges
 
 ## Hyperparameters
 We tuned DRAG with the following tuning ranges:
@@ -77,7 +88,10 @@ We tuned DRAG with the following tuning ranges:
 ## Description for each file
 - `datasets.py`: A file for loading the YelpChi and Amazon_new datasets
 - `data_handler.py`: A file for processing the given dataset according to the arguments
+- `feature_engineering.py`: A file for performing feature engineering
+- `ieee_cis_dataset.py`: A file for loading and preprocessing the IEEE-CIS fraud-detection dataset, applying optional CTGAN, SMOTE, GraphGAN, contrastive-learning, and temporal-weight-decay augmentations, and constructing the heterogeneous transaction graph
 - `layers.py`: A file for defining the DRAGConv layer
+- `main.py`: A notebook for running or experimenting with the augmented DRAG pipeline interactively
 - `model_handler.py`: A file for training DRAG
 - `models.py`: A file for defining DRAG architecture
 - `performance_check.ipynb`: A file for checking the fraud detection performance of DRAG
