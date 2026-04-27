@@ -20,13 +20,22 @@ We used Python 3.8, Pytorch 1.12.1, and DGL 1.0.2 with cudatoolkit 11.3.
 
 ## Usage
 ### DRAG
-We used NVIDIA RTX A6000 and NVIDIA GeForce RTX 3090 for all our experiments. We provide the template configuration file (`template.json`) for the YelpChi and Amazon_new datasets.
+We used NVIDIA RTX A6000 and NVIDIA GeForce RTX 3090 for all our experiments. We provide the template configuration file (`template.json`) for the datasets.
 
-To train DRAG, use the `run.py` file as follows:
+## How to run the models
 
-```python
+There are two ways to run the project.
+
+For a single DRAG experiment using a JSON configuration file, run:
+
+```bash
 python run.py --exp_config_path=./template.json
 ```
+
+This runs one experiment using the settings defined in template.json.
+
+For the updated augmented pipeline, use main.ipynb. This notebook runs the full set of augmented experiments by combining different preprocessing and post-training options, including GAN, GraphGAN, SMOTE, GraphSMOTE, contrastive learning, and time-weight decay.
+
 Results will be printed in the terminal and saved in the directory designated by the configuration file.
 
 Each run corresponds to an experiment ID `f"{dataset_name}-{train_ratio}-{seed}-{time}"`.
@@ -91,7 +100,7 @@ We tuned DRAG with the following tuning ranges:
 - `feature_engineering.py`: A file for performing feature engineering
 - `ieee_cis_dataset.py`: A file for loading and preprocessing the IEEE-CIS fraud-detection dataset, applying optional CTGAN, SMOTE, GraphGAN, contrastive-learning, and temporal-weight-decay augmentations, and constructing the heterogeneous transaction graph
 - `layers.py`: A file for defining the DRAGConv layer
-- `main.py`: A notebook for running or experimenting with the augmented DRAG pipeline interactively
+- `main.ipynb`: A notebook for running or experimenting with the augmented DRAG pipeline interactively
 - `model_handler.py`: A file for training DRAG
 - `models.py`: A file for defining DRAG architecture
 - `performance_check.ipynb`: A file for checking the fraud detection performance of DRAG
