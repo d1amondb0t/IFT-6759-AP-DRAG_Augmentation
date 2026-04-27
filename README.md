@@ -99,3 +99,7 @@ We tuned DRAG with the following tuning ranges:
 - `result_manager.py`: A file for managing train, validation, and test logs
 - `template.json`: A template file consisting of arguments
 - `utils.py`: A file for defining utility functions
+- `GraphGAN/results/link_prediction/`: A folder for storing GraphGAN link-prediction outputs, including the generated graph input file and the learned generator/discriminator embedding files used by the GraphGAN augmentation pipeline.
+- `experiment_results/`: A folder for storing saved experiment results from different augmentation settings and repeated runs. The result files are organized by pre-training augmentation method, post-training method, and run number, with a `summary.csv` file for aggregated results.
+- `post_training/`: A folder containing optional post-training modules applied after the base DRAG model is trained, including contrastive learning, temporal DRAG utilities, and time-weighted training components.
+- `smote/`: A folder containing the SMOTE-based augmentation implementation for the IEEE-CIS fraud detection dataset.
